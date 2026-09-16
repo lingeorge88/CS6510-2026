@@ -3,6 +3,8 @@ package com.selfcheckout;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.Map;
+import java.util.List;
 @RestController
 public class CheckoutController {
 
@@ -23,13 +25,18 @@ public class CheckoutController {
 
     // TODO: Add AtomicLong for global scan sequence counter
 
-    // ---------------------------------------------------------------
-    // GET /items — Return full catalog
-    // ---------------------------------------------------------------
-
-    // TODO: Implement GET /items
-    // Return: { "items": [ { "sku": "...", "name": "...", "price": ... }, ... ] }
-
+    /**
+     * GET /items — Returns the full product catalog.
+     * The load-testing client fetches this once at startup to know which SKUs exist.
+     * Spring serializes the returned Map to JSON: {@code { "items": [ ... ] }}
+     *
+     * @return map containing all catalog items under the "items" key
+     */
+    @GetMapping("/items")
+    public Map<String, Object> getAllItems() {
+        List<CatalogItem> catalogItems = catalogItemRepository.findAll();
+        return Map.of("items", catalogItems);
+    }
     // ---------------------------------------------------------------
     // POST /transactions — Start a new transaction
     // ---------------------------------------------------------------
