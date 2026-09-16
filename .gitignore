@@ -1,0 +1,17 @@
+# IDE
+.idea/
+*.iml
+*.iws
+*.ipr
+.vscode/
+
+# Build artifacts
+out/
+target/
+
+# Claude Code / Specify
+.claude/
+.specify/
+
+# OS
+.DS_Store
