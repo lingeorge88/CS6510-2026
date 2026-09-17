@@ -288,7 +288,7 @@ public class CheckoutController {
         LocalDateTime now = LocalDateTime.now();
 
 
-        popularItemSnapshotRepository.deleteAll();
+        popularItemSnapshotRepository.deleteAllInBatch();
         int rank = 1;
         for (Object[] sku : topSkus) {
             String skuId = (String) sku[0];
