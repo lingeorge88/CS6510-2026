@@ -5,12 +5,12 @@ import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.UUID;
 
-// Entity: Transaction
-// Table: transactions
-// Schema reference: specs/001-self-checkout-monolith/data-model.md → "2. Transaction"
-// Fields: id (PK, assigned not generated), stationId, status, itemCount, runningTotal, startedAt, completedAt
-// State transitions: OPEN → COMPLETED or OPEN → CANCELLED
-
+/**
+ * A checkout transaction at a station, mapped to the {@code transactions} table.
+ * The ID is assigned (not auto-generated) as {@code "tx-" + UUID}. State transitions
+ * are OPEN → COMPLETED or OPEN → CANCELLED. The no-arg constructor initializes
+ * defaults (status=OPEN, itemCount=0, runningTotal=0, startedAt=now).
+ */
 @Entity
 @Table(name = "transactions")
 public class Transaction {

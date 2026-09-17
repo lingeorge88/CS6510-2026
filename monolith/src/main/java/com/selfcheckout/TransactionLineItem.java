@@ -5,12 +5,11 @@ import jakarta.persistence.*;
 
 import java.math.BigDecimal;
 
-// Entity: TransactionLineItem
-// Table: transaction_line_items
-// Schema reference: specs/001-self-checkout-monolith/data-model.md → "3. TransactionLineItem"
-// Fields: id (PK, auto-generated), transactionId, sku, unitPrice
-// Each scan creates one row; receipt groups by SKU with quantity
-
+/**
+ * A single scanned item within a transaction, mapped to the {@code transaction_line_items} table.
+ * Each scan creates one row; at completion, rows are grouped by SKU to build receipt lines
+ * with aggregated quantities.
+ */
 @Entity
 @Table(name = "transaction_line_items")
 public class TransactionLineItem {

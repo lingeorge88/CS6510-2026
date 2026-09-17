@@ -5,12 +5,12 @@ import jakarta.persistence.*;
 
 import java.time.LocalDateTime;
 
-// Entity: PopularItemSnapshot
-// Table: popular_items_snapshot
-// Schema reference: specs/001-self-checkout-monolith/data-model.md → "5. PopularItemSnapshot"
-// Fields: id (PK, auto-generated), windowStart, windowEnd, computedAt, sku, name, scanCount, rank
-// Persisted result of hopping window computation (recomputed every 500 scans)
-
+/**
+ * A persisted row from the popular-items hopping window computation, mapped to the
+ * {@code popular_items_snapshot} table. Each recomputation (every 500 scans) writes one
+ * row per ranked SKU sharing the same {@code windowStart}/{@code windowEnd} values.
+ * The latest snapshot is retrieved by querying for the max {@code windowEnd}.
+ */
 @Entity
 @Table(name = "popular_items_snapshot")
 public class PopularItemSnapshot {

@@ -4,12 +4,11 @@ import jakarta.persistence.*;
 
 import java.time.LocalDateTime;
 
-// Entity: ScanEvent
-// Table: scan_events
-// Schema reference: specs/001-self-checkout-monolith/data-model.md → "4. ScanEvent"
-// Fields: id (PK, auto-generated), globalSeq (unique, monotonic), sku, scannedAt
-// Used for the popular items hopping window analytics
-
+/**
+ * A record of a single item scan, mapped to the {@code scan_events} table.
+ * Each event carries a monotonically increasing {@code globalSeq} used to define the
+ * hopping window for popular-items analytics (last 1000 scans, recomputed every 500).
+ */
 @Entity
 @Table(name = "scan_events")
 public class ScanEvent {

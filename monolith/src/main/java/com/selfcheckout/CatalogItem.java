@@ -3,6 +3,12 @@ package com.selfcheckout;
 import jakarta.persistence.*;
 import java.math.BigDecimal;
 
+/**
+ * A product in the store catalog, mapped to the {@code catalog_items} table.
+ * Each item has a unique SKU, a name, a price, and a current stock level.
+ * Stock is decremented atomically at transaction completion via
+ * {@link CatalogItemRepository#decrementStock}.
+ */
 @Entity
 @Table(name = "catalog_items")
 public class CatalogItem {
