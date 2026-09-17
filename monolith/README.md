@@ -6,7 +6,6 @@
 
 1. [Architectural Characteristics & Requirements](#1-architectural-characteristics--requirements)
 2. [Top 3 Prioritized Characteristics](#2-top-3-prioritized-characteristics)
-3. [Load Test Results](#3-load-test-results)
 
 ---
 
@@ -68,12 +67,4 @@ Demand changes throughout the day, so the system must handle a large increase in
 
 ---
 
-## 3. Load Test Results
 
-- **Default load:** With 10 stations running for 60 seconds, START, SCAN, and COMPLETE all had a 0% request error rate.
-- **Stress load:** With 100 stations running for 120 seconds, all three operations still had a 0% request error rate.
-- **Inventory safety:** A post-test PostgreSQL query found no catalog items with stock below zero.
-- **Performance:** Every recorded p95 latency remained below the stated response-time requirements.
-- **Scalability:** Throughput decreased from 368 to 313 transactions per second, retaining about 85% of the 10-station throughput.
-
-The load client treats a request as successful when it receives the expected HTTP status and a valid response. These results demonstrate request reliability, nonnegative inventory, and performance under load. The inventory query confirms that the database guard prevented negative stock; it does not independently verify that every item on every completed receipt produced a successful stock decrement.
