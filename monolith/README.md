@@ -27,21 +27,25 @@ Checkout is an interactive process, so customers and staff should not be left wa
 
 - START and SCAN must respond in under 1 second under normal load
 - COMPLETE transaction must finish in under 2 - 3 seconds
+- Retain at least 75% of the 10-station performance for the above operations when load increases to 100 stations
 
-### Scalability
+### Operational Visibility / Analytics
 
-A supermarket may run 10 stations during quiet periods and more than 50 at peak times. As demand grows, the system should continue to behave correctly without a steep drop in performance.
+Store staff need visibility into inventory and customer activity without querying the database manually. The system provides operational endpoints for identifying low-stock products and understanding which items are scanned most often.
 
-- Support 100 concurrent stations with 0% error rate
-- Retain at least 75% of the 10-station throughput when load increases to 100 stations
+- Expose all items below a configurable stock threshold through `/inventory/low-stock`
+- Track each scan so popular-item activity can be calculated from the most recent 1,000 scan events
+- Recalculate the popular-item ranking every 500 scans and return the latest top 10 items through `/analytics/popular-items`
+- Capture latency, throughput, and request error rates during load tests so performance changes can be compared over time
 
-### Maintainability
+### Scalability / Maintainability
 
-Checkout rules will change over time as the store adds products, payment behavior, or reporting needs. The code should make these changes straightforward without affecting unrelated parts of the system.
+The application's code is divided into JPA entities, repository interfaces, and a REST controller. These boundaries separate database mapping, data access, and HTTP handling so the system can grow without putting every business logic into one class.
 
-- Checkout operations must use consistent request validation, HTTP status codes, and error responses
-- Inventory updates and other critical business rules must be clearly named and documented
-- Changes to one checkout operation should not require changes to unrelated operations
+- Keep table mappings inside entity classes and database queries inside repository interfaces rather than embedding SQL in controller methods
+- Give each persisted concept its own entity and repository so inventory, transactions, and analytics can evolve independently
+- Preserve the external API contract when persistence logic is changed or moved behind a future service layer
+- Allow a domain such as inventory or analytics to be extracted into a separate service without rewriting the rest of the application
 
 ---
 
@@ -59,12 +63,10 @@ Every scan and payment has a person waiting for feedback. Slow responses create 
 
 **Trade-off:** Popular-item analytics are recalculated every 500 scans rather than after every scan. This reduces the amount of analytics work performed in the checkout path, but every 500th scan handles the recomputation and the analytics view may be up to 500 scans behind.
 
-### 3. Scalability
+### 3. Scalability / Maintainability
 
-Demand changes throughout the day, so the system must handle a large increase in active stations without introducing errors. Reliable behavior at 100 stations matters more than achieving the lowest possible latency at 10.
+The Spring Boot entity-repository-controller pattern gives the monolith clear internal boundaries. Entities define the persistence model, repositories contain built-in and custom database operations, and the controller owns the HTTP workflow. This is more structured than placing SQL, business rules, and request handling in one class. It also gives the project the ability and flexibility for adding a service layer or later extracting inventory and analytics into independent services without replacing the entire codebase.
 
-**Trade-off:** The current monolith is inexpensive and easy to deploy, but it has a lower scalability ceiling than a distributed design. Connection pooling, replicas, or separate services could support more traffic, but would add infrastructure and operational complexity.
+**Trade-off:** This structure requires more classes, interfaces, configuration, and up-front development time than a bare-minimum monolithic server with database queries written directly inside controller methods. It also does not provide distributed scaling by itself: the application still runs as one deployable unit, and much of the business workflow is currently concentrated in one controller. The additional structure is worthwhile because it keeps persistence concerns separate and supports gradual refactoring into service classes, a layered architecture, or microservices as the system grows.
 
 ---
-
-
