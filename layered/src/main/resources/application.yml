@@ -1,0 +1,28 @@
+server:
+  port: 8080
+
+spring:
+  datasource:
+    url: jdbc:postgresql://localhost:5432/selfcheckout
+    username: ${USER}
+    password: ""
+  jpa:
+    hibernate:
+      ddl-auto: create
+    show-sql: false
+    defer-datasource-initialization: true
+    properties:
+      hibernate:
+        format_sql: false
+  sql:
+    init:
+      mode: always
+      data-locations: classpath:data.sql
+# Analytics policy. In the monolith these were hardcoded literals inside
+# CheckoutController; owning them here keeps window policy in the analytics layer.
+selfcheckout:
+  analytics:
+    window-size: 1000
+    slide-interval: 500
+    popular-items-limit: 10
+    low-stock-threshold: 50
