@@ -6,6 +6,18 @@ spring:
     url: jdbc:postgresql://localhost:5432/selfcheckout
     username: ${USER}
     password: ""
+    hikari:
+      # Kept at the default 10 after measuring. Raising it to 24 (the usual
+      # (cores * 2) + 1 heuristic for this 12-core machine) left throughput
+      # unchanged at 100 stations, 484.7 -> 483.3 tx/s, while COMPLETE p99 went
+      # 41 ms -> 147 ms and max 263 ms -> 990 ms. The pool is not the constraint;
+      # extra connections only move the queue out of the JVM and into PostgreSQL,
+      # which on a box also running the app server and the load generator is the
+      # more expensive place to wait. Stated explicitly so the value reads as a
+      # measured decision rather than an untouched default.
+      maximum-pool-size: 10
+      minimum-idle: 10
+      pool-name: checkoutPool
   jpa:
     hibernate:
       ddl-auto: create
