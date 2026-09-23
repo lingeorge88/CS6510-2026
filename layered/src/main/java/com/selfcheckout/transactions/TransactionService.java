@@ -10,12 +10,14 @@ import com.selfcheckout.data.TransactionRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
-import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.TreeMap;
+import java.util.concurrent.atomic.LongAdder;
 
 /**
  * Catalog reads and the basket lifecycle: start, scan, inspect, complete.
@@ -27,6 +29,13 @@ public class TransactionService {
     private final TransactionLineItemRepository lineItemRepository;
     private final CatalogItemRepository catalogItemRepository;
     private final AnalyticsService analyticsService;
+
+    /**
+     * Units that could not be decremented because stock had reached zero. Written on
+     * every occurrence and read rarely, so a {@link LongAdder} rather than an
+     * {@code AtomicLong}. Must be zero for any run whose numbers are reported.
+     */
+    private final LongAdder unfulfilledUnits = new LongAdder();
 
     public TransactionService(TransactionRepository transactionRepository,
                               TransactionLineItemRepository lineItemRepository,
@@ -114,12 +123,39 @@ public class TransactionService {
             throw CheckoutException.basketEmpty(transactionId);
         }
 
+        Map<String, List<TransactionLineItem>> bySku = new TreeMap<>();
+        for (TransactionLineItem lineItem : lineItems) {
+            bySku.computeIfAbsent(lineItem.getSku(), sku -> new ArrayList<>()).add(lineItem);
+        }
+
+        // Catalog reads happen before any stock row is locked.
+        Map<String, CatalogItem> catalog = new LinkedHashMap<>();
+        for (CatalogItem item : catalogItemRepository.findAllById(bySku.keySet())) {
+            catalog.put(item.getSku(), item);
+        }
+
+        List<TransactionLineItem> fulfilled = new ArrayList<>(lineItems.size());
+        List<TransactionLineItem> unfulfilled = new ArrayList<>();
+        releaseStock(bySku, fulfilled, unfulfilled);
+
+        // A unit that could not be decremented was never sold, so it must not remain a
+        // line item on a completed transaction — that is what keeps
+        // initial_stock - final_stock equal to the completed line-item count.
+        if (!unfulfilled.isEmpty()) {
+            lineItemRepository.deleteAllInBatch(unfulfilled);
+            unfulfilledUnits.add(unfulfilled.size());
+        }
+
+        BigDecimal total = BigDecimal.ZERO;
+        for (TransactionLineItem lineItem : fulfilled) {
+            total = total.add(lineItem.getUnitPrice());
+        }
+
+        transaction.setItemCount(fulfilled.size());
+        transaction.setRunningTotal(total);
         transaction.setStatus(Transaction.TransactionStatus.COMPLETED);
         transaction.setCompletedAt(LocalDateTime.now());
         transactionRepository.save(transaction);
-
-        List<Map<String, Object>> lines = buildReceiptLines(lineItems);
-        releaseStock(lineItems);
 
         return Map.of(
                 "transactionId", transaction.getTransactionId(),
@@ -128,30 +164,44 @@ public class TransactionService {
                 "totalAmount", transaction.getRunningTotal(),
                 "startedAt", transaction.getStartedAt().toString(),
                 "completedAt", transaction.getCompletedAt().toString(),
-                "lines", lines);
+                "lines", buildReceiptLines(fulfilled, catalog));
+    }
+
+    /** @return units that could not be decremented because stock had run out */
+    public long unfulfilledUnits() {
+        return unfulfilledUnits.sum();
     }
 
     /**
-     * Decrements stock by one per scanned unit, in SKU order so that concurrent
-     * transactions always take stock locks in the same sequence.
+     * Decrements stock by one per scanned unit, partitioning the units into those that
+     * succeeded and those that found the SKU already at zero.
+     *
+     * <p>{@code bySku} is sorted, so concurrent transactions always take stock locks in
+     * the same order and cannot deadlock each other.
      */
-    private void releaseStock(List<TransactionLineItem> lineItems) {
-        List<TransactionLineItem> ordered = new ArrayList<>(lineItems);
-        ordered.sort(Comparator.comparing(TransactionLineItem::getSku));
-        for (TransactionLineItem lineItem : ordered) {
-            catalogItemRepository.decrementStock(lineItem.getSku());
+    private void releaseStock(Map<String, List<TransactionLineItem>> bySku,
+                              List<TransactionLineItem> fulfilled,
+                              List<TransactionLineItem> unfulfilled) {
+        for (Map.Entry<String, List<TransactionLineItem>> entry : bySku.entrySet()) {
+            for (TransactionLineItem unit : entry.getValue()) {
+                if (catalogItemRepository.decrementStock(entry.getKey()) == 1) {
+                    fulfilled.add(unit);
+                } else {
+                    unfulfilled.add(unit);
+                }
+            }
         }
     }
 
-    /** Groups scanned units by SKU into receipt lines with aggregated quantities. */
-    private List<Map<String, Object>> buildReceiptLines(List<TransactionLineItem> lineItems) {
+    /** Groups sold units by SKU into receipt lines with aggregated quantities. */
+    private List<Map<String, Object>> buildReceiptLines(List<TransactionLineItem> soldUnits,
+                                                        Map<String, CatalogItem> catalog) {
         Map<String, Map<String, Object>> grouped = new LinkedHashMap<>();
-        for (TransactionLineItem lineItem : lineItems) {
+        for (TransactionLineItem lineItem : soldUnits) {
             Map<String, Object> entry = grouped.computeIfAbsent(lineItem.getSku(), sku -> {
-                CatalogItem catalogItem = catalogItemRepository.findById(sku).orElseThrow();
                 Map<String, Object> newEntry = new LinkedHashMap<>();
                 newEntry.put("sku", sku);
-                newEntry.put("name", catalogItem.getName());
+                newEntry.put("name", catalog.get(sku).getName());
                 newEntry.put("unitPrice", lineItem.getUnitPrice());
                 newEntry.put("quantity", 0);
                 return newEntry;

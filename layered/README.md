@@ -75,21 +75,67 @@ the one on `CatalogItemRepository.decrementStock`.
 This is so the load test measures the cost of layering and nothing else. Optimisation is
 Phase 2, measured separately.
 
-## Results (10 stations, 60s, same machine)
+## Results
 
-| | monolith | layered | delta |
-|---|---|---|---|
-| tx/sec | 368.34 | 364.1 | −1.2% |
-| START p95 / p99 (ms) | 0.76 / 1.41 | 0.75 / 1.23 | within noise |
-| SCAN p95 / p99 (ms) | 1.65 / 2.89 | 1.65 / 2.55 | within noise |
-| COMPLETE p95 / p99 (ms) | 23.21 / 28.18 | 23.16 / 25.50 | within noise |
-| errors | 0 | 0 | — |
+Same machine, same load client, same contract.
 
-**Layering costs nothing measurable.**
+| 10 stations / 60s | monolith | layered (final) |
+|---|---|---|
+| **tx/sec** | 368.34 | **521.8** (+42%) |
+| START p95 / p99 (ms) | 0.76 / 1.41 | 0.86 / 1.34 |
+| SCAN p95 / p99 (ms) | 1.65 / 2.89 | 1.89 / 2.76 |
+| COMPLETE p95 / p99 (ms) | 23.21 / 28.18 | **6.28 / 9.15** |
+| errors | 0 | 0 |
 
-Stock invariant (`initial − final == completed line items`) **fails identically to the
-monolith**: 2 SKUs, ~23k units never decremented, no negative stock. That is the correct
-Phase 1 outcome — the defect was preserved, not accidentally fixed.
+| 100 stations / 120s | monolith | layered |
+|---|---|---|
+| **tx/sec** | 313.38 | **533.8** (+70%) |
+| COMPLETE p50 / p95 (ms) | 41.53 / 67.58 | **16.40 / 27.40** |
+| errors | 0 | 0 |
+
+Two things worth noting. First, **the layering itself cost nothing** — the pure refactor
+measured 364.1 tx/s against the monolith's 368.34, inside run-to-run noise. Every gain
+above came from the Phase 2 changes, not from the structure.
+
+Second, **the monolith lost throughput under load** (368 → 313 going from 10 to 100
+stations) whereas this holds flat (522 → 534). The saturation ceiling moved up and
+stopped collapsing. It is still a ceiling, though: reaching 530 at 10 stations and the
+same at 100 means the system saturates by 10 concurrent requests — the HikariCP pool
+default of 10 connections is the next binding constraint.
+
+### Correctness
+
+The stock invariant (`initial - final == completed line items`, never negative) **passes**:
+
+```
+ skus_violating | units_never_decremented | negative_stock | verdict
+              0 |                       0 |              0 | PASS
+```
+
+The monolith fails it — 64,895 units sold without a decrement at a reported 0.00% error
+rate, because the load client only checks HTTP status and never validates the receipt.
+
+## Phase 2 changes
+
+| change | effect |
+|---|---|
+| Index on `transaction_line_items(transaction_id)` | **+20%** tx/sec; COMPLETE p50 14.83 → 5.61 ms; `seq_tup_read` 2.5 B → 0 |
+| `complete()` in one `@Transactional` | ~12 auto-commits → 1, and the operation is finally atomic |
+| Stock accounting: units that cannot be decremented are not sold | invariant passes; costs ~1.6% |
+| Receipt built from one `findAllById` | removes the N+1 over distinct SKUs |
+
+Stock decrements are issued **last**, immediately before commit, and in sorted SKU order.
+Both matter: row locks are now held until commit rather than for their own mini-transaction,
+so a long lock window on a hot SKU would cost more than the batching saves, and multiple
+row locks in one transaction can deadlock without a consistent global ordering.
+
+### Out-of-stock handling
+
+The contract defines no out-of-stock error — `/complete` allows only 200, 404 and 409
+(already completed / empty basket), and scans are explicitly not gated on stock. When a
+SKU runs out, units that cannot be decremented are removed from the transaction rather
+than sold, so the receipt reflects what was actually dispensed and the ledger balances.
+This keeps stock non-negative *and* the invariant exact, without inventing a status code.
 
 ## Run it
 

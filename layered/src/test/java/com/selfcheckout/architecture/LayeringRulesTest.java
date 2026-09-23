@@ -12,15 +12,10 @@ import static com.tngtech.archunit.lang.syntax.ArchRuleDefinition.noClasses;
 import static com.tngtech.archunit.library.dependencies.SlicesRuleDefinition.slices;
 
 /**
- * Executable definition of the layered architecture. A violation fails the build.
+ * Executable definition of the layered architecture; a violation fails the build.
  *
- * <p>These rules are the reason the layering is a real constraint rather than a naming
- * convention: nothing otherwise stops someone autowiring a repository into a controller.
- *
- * <p>Note what is deliberately NOT enforced: entities may travel up into the api layer,
- * because this implementation returns them directly instead of mapping to DTOs. That is
- * a conscious simplicity trade-off. Repositories may NOT — a controller reaching past
- * the service layer to the database is the boundary that actually matters here.
+ * <p>Entities are permitted to reach the api layer because this implementation returns
+ * them directly rather than mapping to DTOs. Repositories are not.
  */
 class LayeringRulesTest {
 
