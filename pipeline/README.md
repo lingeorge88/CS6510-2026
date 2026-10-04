@@ -24,7 +24,13 @@ flowchart TD
 
 ---
 
-## 2. The pipeline: a 3-stage filters-and-pipes chain
+## 2. 3-stage Pipeline for Analytics
+
+The analytics system has a 3-stage pipeline:
+
+**ingest** (sequences and persists scans) → **aggregate** (ranks the exact hopping window with SQL) → **publish** (appends the snapshot and swaps the in-memory latest-snapshot reference)
+
+The filters run on three Java worker threads connected by bounded blocking queues (`ArrayBlockingQueue`). Scans are offered non-blocking after the basket writes commit, and GET reads the snapshot from memory, so analytics never blocks or fails a checkout. Checkout and low-stock remain layered.
 
 **ingest → aggregate → publish**, each on its own worker thread, connected by bounded Java `ArrayBlockingQueue`s (the pipes).
 
@@ -48,17 +54,11 @@ flowchart TD
 
 Windows at defaults are `[1,1000]`, `[501,1500]`, … The requested `limit` is applied to the full ranking at response time. Queued inputs are volatile (lost on abrupt crash); startup recreates the database.
 
----
-## 3. Submission description
 
-The analytics system has a 3-stage pipeline:
 
-**ingest** (sequences and persists scans) → **aggregate** (ranks the exact hopping window with SQL) → **publish** (appends the snapshot and swaps the in-memory latest-snapshot reference)
-
-The filters run on three Java worker threads connected by bounded blocking queues (`ArrayBlockingQueue`). Scans are offered non-blocking after the basket writes commit, and GET reads the snapshot from memory, so analytics never blocks or fails a checkout. Checkout and low-stock remain layered.
 
 ---
-## 4. Performance analysis
+## 3. Performance analysis
 
 Stress mode (`--stations=100 --duration=120`), seed 10,000/SKU matched to baseline, pool of 10, zero HTTP errors. Reports in `quality-attribute-analysis/`.
 
