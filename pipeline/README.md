@@ -73,8 +73,8 @@ In the layered version, every 500 scans a scan request ran the snapshot step **i
 
 The pipeline removes that from the request path:
 
-- **Off the hot path** — all snapshot work now runs on the background **publish** worker, so no scan request ever waits for it. *(This is where the speedup comes from.)*
-- **No delete** — snapshots are append-only, so the old wipe-and-rebuild step is gone entirely.
+- **Off the hot path** — all snapshot work now runs on the background **publish** worker, so no scan request ever waits for it.
+- **No delete** — snapshots are append-only, so the old wipe-and-rebuild step is removed to reduce database round trips.
 
 Over the same 120s, that frees the request threads to handle **~26% more transactions**.
 
