@@ -6,9 +6,9 @@ independently deployable container, sharing **one centralized database**.
 
 ## Services
 
-- **catalog-service** (Spring Boot) — owns `catalog_items` and `inventory_stock`; serves `GET /items` and `GET /inventory/low-stock`.
-- **checkout-service** (Spring Boot) — owns `transactions` and `transaction_line_items`; serves `POST /transactions`, `/{id}/items`, `/{id}/complete`, and `GET /transactions/{id}`.
-- **analytics-service** (Spring Boot) — owns `popular_items_snapshot`; serves `GET /analytics/popular-items`.
+- **catalog-service** (Spring Boot): owns `catalog_items` and `inventory_stock`; serves `GET /items` and `GET /inventory/low-stock`.
+- **checkout-service** (Spring Boot): owns `transactions` and `transaction_line_items`; serves `POST /transactions`, `/{id}/items`, `/{id}/complete`, and `GET /transactions/{id}`.
+- **analytics-service** (Spring Boot): owns `popular_items_snapshot`; serves `GET /analytics/popular-items`.
 
 
 ## Routing
@@ -25,12 +25,12 @@ corresponding service.
 `shared-persistence` is a thin library holding **only** the entities/repositories
 for tables touched by more than one service:
 
-- `catalog_items` — read by catalog, checkout, analytics
-- `inventory_stock` — written by checkout, read by catalog
-- `scan_events` — written by checkout, read by analytics
+- `catalog_items` : read by catalog, checkout, analytics
+- `inventory_stock` : written by checkout, read by catalog
+- `scan_events` : written by checkout, read by analytics
 
 
-## Topology
+## Architecture
 
 ```mermaid
 flowchart TB
