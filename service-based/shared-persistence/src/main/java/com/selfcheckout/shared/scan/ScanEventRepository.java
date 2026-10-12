@@ -6,21 +6,16 @@ import org.springframework.data.repository.query.Param;
 
 import java.util.List;
 
-/**
- * Scan access. Checkout only ever calls {@code save}; Analytics calls the read
- * methods to drive the hopping-window recomputation.
- */
+/** Data access for the scan_events table. */
 public interface ScanEventRepository extends JpaRepository<ScanEvent, Long> {
 
-    /** @return the highest scan id so far (the current global sequence head), or null if none */
+    /** @return the highest scan id so far, or null if there are none */
     @Query("SELECT MAX(s.id) FROM ScanEvent s")
     Long maxSequence();
 
     /**
-     * Ranks SKUs within the inclusive id window {@code [start, end]}, joining the
-     * catalog for the display name. Count desc, then SKU asc for stable tie-breaks.
-     *
-     * @return rows of {@code [sku, name, scanCount]}
+     * Ranks SKUs within the inclusive id window, joined to the catalog name,
+     * ordered by scan count descending then SKU ascending.
      */
     @Query(value = """
             SELECT s.sku AS "sku", c.name AS "name", COUNT(*) AS "scanCount"

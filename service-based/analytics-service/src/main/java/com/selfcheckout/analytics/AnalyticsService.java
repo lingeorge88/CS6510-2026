@@ -14,14 +14,9 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * Maintains and serves the popular-items hopping window. A scheduled task pulls
- * from the shared {@code scan_events} log and, whenever a new slide boundary has
- * been crossed, recomputes the ranking over the most recent {@code windowSize}
- * scans and persists it as a snapshot. Reads serve the latest persisted snapshot.
- *
- * <p>This is deliberately simpler than the week-3 threaded pipeline: in the
- * service-based style the interesting property is that Analytics is a separate
- * deployable unit coupled to Checkout only through the database.
+ * Maintains and serves the popular-items hopping window: a scheduled task
+ * recomputes the ranking over recent scans into a snapshot, and reads serve the
+ * latest snapshot.
  */
 @Service
 public class AnalyticsService {
@@ -48,10 +43,7 @@ public class AnalyticsService {
         this.snapshotDepth = snapshotDepth;
     }
 
-    /**
-     * Recomputes the latest hopping window if a new slide boundary has been crossed.
-     * Runs on the single scheduler thread, so recomputations never overlap.
-     */
+    /** Recomputes the latest hopping window if a new slide boundary has been crossed. */
     @Scheduled(fixedDelayString = "${selfcheckout.analytics.recompute-interval-ms:500}")
     @Transactional
     public void recompute() {
@@ -60,15 +52,14 @@ public class AnalyticsService {
             return;
         }
 
-        // Latest completed slide boundary <= the current sequence head.
         long boundary = (maxSeq / slideInterval) * slideInterval;
         if (boundary < windowSize) {
-            return; // not enough scans for a full window yet
+            return;
         }
 
         Long last = snapshots.latestWindowEnd();
         if (last != null && boundary <= last) {
-            return; // this window is already computed
+            return;
         }
 
         long start = boundary - windowSize + 1;

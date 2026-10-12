@@ -8,10 +8,7 @@ import org.springframework.web.bind.annotation.RestController;
 import java.util.List;
 import java.util.Map;
 
-/**
- * Serves {@code GET /items} — the full catalog the load client fetches once at
- * startup. Returns {@code {"items": [{sku, name, price}, ...]}}.
- */
+/** Serves {@code GET /items}, the full catalog. */
 @RestController
 public class CatalogController {
 

@@ -10,11 +10,7 @@ import jakarta.persistence.Table;
 
 import java.time.LocalDateTime;
 
-/**
- * One ranked row of a computed popular-items window. Private to the Analytics
- * Service. Each recomputation writes several rows sharing the same
- * {@code windowStart}/{@code windowEnd}; the read path serves the latest window.
- */
+/** One ranked row of a computed popular-items window. */
 @Entity
 @Table(name = "popular_items_snapshot",
         indexes = @Index(name = "idx_snapshot_window_end_rank", columnList = "window_end,rank"))

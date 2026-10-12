@@ -10,11 +10,7 @@ import jakarta.persistence.Table;
 
 import java.math.BigDecimal;
 
-/**
- * A single scanned unit within a transaction (one row per unit; quantity is the
- * row count). Private to the Checkout Service. The index on {@code transaction_id}
- * keeps {@code findByTransactionId} off a sequential scan as the table grows.
- */
+/** A single scanned unit within a transaction (one row per unit). */
 @Entity
 @Table(name = "transaction_line_items",
         indexes = @Index(name = "idx_line_item_transaction_id", columnList = "transaction_id"))

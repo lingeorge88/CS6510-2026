@@ -7,15 +7,7 @@ import jakarta.persistence.Table;
 
 import java.math.BigDecimal;
 
-/**
- * Catalog reference data (sku, name, price). Logically owned by the Catalog
- * Service, but the read model lives in shared-persistence because three services
- * read it (Catalog serves {@code GET /items}; Checkout needs name/price at scan;
- * Analytics joins it to name popular items).
- *
- * <p>Stock is deliberately NOT here — it was split into {@code inventory_stock}
- * so the Inventory Service owns its own data domain.
- */
+/** Catalog reference data: sku, name, price. */
 @Entity
 @Table(name = "catalog_items")
 public class CatalogItem {

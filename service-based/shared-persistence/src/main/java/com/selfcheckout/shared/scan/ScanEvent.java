@@ -9,16 +9,7 @@ import jakarta.persistence.Table;
 
 import java.time.LocalDateTime;
 
-/**
- * One item scan. Written by the Checkout Service at scan time and read by the
- * Analytics Service to compute popular items — a shared table, so it lives in
- * shared-persistence (Checkout → shared DB → Analytics, with no service call).
- *
- * <p>{@code id} is a DB identity column and doubles as the monotonic global scan
- * sequence that defines the hopping window; {@code windowStart}/{@code windowEnd}
- * in the analytics response are {@code id} values. Because Checkout inserts
- * synchronously at scan time, insertion order is scan order.
- */
+/** A single item scan; its identity id doubles as the global scan sequence. */
 @Entity
 @Table(name = "scan_events")
 public class ScanEvent {
@@ -41,7 +32,6 @@ public class ScanEvent {
         this.scannedAt = scannedAt;
     }
 
-    /** @return the identity id, which doubles as the global scan sequence number */
     public Long getId() {
         return id;
     }

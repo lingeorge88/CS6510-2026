@@ -15,11 +15,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
-/**
- * Serves {@code GET /inventory/low-stock}. Reads {@code inventory_stock} for the
- * current levels and joins {@code catalog_items} for the display name — both
- * owned by this merged service.
- */
+/** Serves {@code GET /inventory/low-stock}. */
 @RestController
 public class LowStockController {
 

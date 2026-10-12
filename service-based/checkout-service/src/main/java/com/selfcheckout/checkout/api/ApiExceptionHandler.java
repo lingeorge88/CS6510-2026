@@ -12,11 +12,7 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 
 import java.util.Map;
 
-/**
- * Translates failures into the {@code ApiError} response shape
- * ({@code {"error": CODE, "message": ...}}). The only place in the service that
- * maps domain outcomes to HTTP status codes.
- */
+/** Maps failures to the {@code {"error": CODE, "message": ...}} response shape with a status code. */
 @RestControllerAdvice
 public class ApiExceptionHandler {
 

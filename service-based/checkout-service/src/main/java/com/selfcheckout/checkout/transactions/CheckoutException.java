@@ -1,9 +1,6 @@
 package com.selfcheckout.checkout.transactions;
 
-/**
- * A business-rule failure, distinguished by {@link Kind}. Carries no HTTP concept;
- * {@code ApiExceptionHandler} maps each kind to a status code.
- */
+/** A business-rule failure, distinguished by {@link Kind}. */
 public class CheckoutException extends RuntimeException {
 
     public enum Kind {

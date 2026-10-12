@@ -12,12 +12,7 @@ import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.UUID;
 
-/**
- * A checkout transaction at a station. Private to the Checkout Service. The ID is
- * assigned as {@code "tx-" + UUID}; the no-arg constructor initialises the OPEN
- * state. {@code completedAt} appears only on the receipt, not the transaction
- * response (matching the API contract), so it is {@code @JsonIgnore}.
- */
+/** A checkout transaction at a station. */
 @Entity
 @Table(name = "transactions")
 public class Transaction {

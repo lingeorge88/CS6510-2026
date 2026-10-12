@@ -5,12 +5,7 @@ import jakarta.persistence.Entity;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
 
-/**
- * Per-SKU stock level. Owned by the Inventory Service (low-stock reads), but the
- * entity and its atomic decrement live in shared-persistence because the Checkout
- * Service performs the decrement at transaction completion via the shared DAO —
- * this is the deliberate database-layer coupling of the service-based style.
- */
+/** Per-SKU stock level. */
 @Entity
 @Table(name = "inventory_stock")
 public class InventoryStock {

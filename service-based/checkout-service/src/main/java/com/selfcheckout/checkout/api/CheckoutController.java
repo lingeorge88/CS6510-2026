@@ -14,11 +14,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import java.util.Map;
 
-/**
- * The transaction endpoints of the API contract. {@code GET /items} and
- * {@code GET /inventory/low-stock} are served by the Catalog Service; this
- * service owns the checkout lifecycle.
- */
+/** The transaction endpoints: start, scan, complete, and get. */
 @RestController
 public class CheckoutController {
 

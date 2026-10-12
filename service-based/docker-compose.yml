@@ -25,7 +25,9 @@ services:
     volumes:
       - ./data/init:/docker-entrypoint-initdb.d:ro
     ports:
-      - "5432:5432"
+      # Host 5433 -> container 5432 (avoids clashing with a local Postgres on 5432).
+      # Services reach the DB internally on db:5432 regardless.
+      - "5433:5432"
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U postgres -d selfcheckout"]
       interval: 2s

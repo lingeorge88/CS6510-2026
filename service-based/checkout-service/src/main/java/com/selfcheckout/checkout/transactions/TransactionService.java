@@ -21,17 +21,7 @@ import java.util.Map;
 import java.util.TreeMap;
 import java.util.concurrent.atomic.LongAdder;
 
-/**
- * The basket lifecycle: start, scan, inspect, complete.
- *
- * <p>Cross-domain work is done entirely through the shared database, not through
- * calls to other services:
- * <ul>
- *   <li>catalog name/price is read via {@link CatalogItemRepository};</li>
- *   <li>each scan writes a {@link ScanEvent} that the Analytics Service reads later;</li>
- *   <li>stock is decremented via the atomic {@link InventoryStockRepository#decrementStock}.</li>
- * </ul>
- */
+/** The basket lifecycle: start, scan, inspect, complete. */
 @Service
 public class TransactionService {
 
@@ -41,10 +31,6 @@ public class TransactionService {
     private final InventoryStockRepository inventoryStockRepository;
     private final ScanEventRepository scanEventRepository;
 
-    /**
-     * Units that could not be decremented because stock had reached zero. Must be
-     * zero for any run whose numbers are reported.
-     */
     private final LongAdder unfulfilledUnits = new LongAdder();
 
     public TransactionService(TransactionRepository transactionRepository,
@@ -76,7 +62,6 @@ public class TransactionService {
     /**
      * Scans one physical unit into the basket.
      *
-     * @return the scanned item joined with the basket's updated totals
      * @throws CheckoutException if the transaction is unknown or not open, or the SKU is unknown
      */
     @Transactional
@@ -96,9 +81,6 @@ public class TransactionService {
         transaction.setRunningTotal(transaction.getRunningTotal().add(item.getPrice()));
         transactionRepository.save(transaction);
 
-        // Analytics coupling is at the DB layer: record the scan for the hopping
-        // window. The Analytics Service reads scan_events on its own schedule — we
-        // never call it. Scans count at scan time, as in the monolith/pipeline.
         scanEventRepository.save(new ScanEvent(item.getSku(), LocalDateTime.now()));
 
         return Map.of(
@@ -112,12 +94,6 @@ public class TransactionService {
 
     /**
      * Completes the transaction, decrements stock, and returns a receipt.
-     *
-     * <p>Runs as one local DB transaction. Because the Checkout Service and the
-     * inventory table share one database, the per-unit atomic decrement stays
-     * inside the <em>same</em> transaction that finalizes the receipt — there is no
-     * cross-service network hop in the critical section, so the stock invariant is
-     * preserved exactly as in the monolith.
      *
      * @throws CheckoutException if the transaction is unknown, not open, or empty
      */
@@ -139,7 +115,6 @@ public class TransactionService {
             bySku.computeIfAbsent(lineItem.getSku(), sku -> new ArrayList<>()).add(lineItem);
         }
 
-        // Catalog reads (for receipt names) happen before any stock row is locked.
         Map<String, CatalogItem> catalog = new LinkedHashMap<>();
         for (CatalogItem item : catalogItemRepository.findAllById(bySku.keySet())) {
             catalog.put(item.getSku(), item);
@@ -149,8 +124,6 @@ public class TransactionService {
         List<TransactionLineItem> unfulfilled = new ArrayList<>();
         releaseStock(bySku, fulfilled, unfulfilled);
 
-        // A unit that could not be decremented was never sold, so it must not remain
-        // a line item — that keeps initial_stock - final_stock == completed line items.
         if (!unfulfilled.isEmpty()) {
             lineItemRepository.deleteAllInBatch(unfulfilled);
             unfulfilledUnits.add(unfulfilled.size());
@@ -184,9 +157,7 @@ public class TransactionService {
 
     /**
      * Decrements stock by one per scanned unit, partitioning units into fulfilled
-     * and those that found the SKU already at zero. {@code bySku} is sorted, so
-     * concurrent transactions take stock row locks in the same order and cannot
-     * deadlock each other.
+     * and those whose SKU was already at zero.
      */
     private void releaseStock(Map<String, List<TransactionLineItem>> bySku,
                               List<TransactionLineItem> fulfilled,

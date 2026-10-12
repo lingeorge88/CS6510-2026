@@ -7,12 +7,8 @@ import org.springframework.data.jpa.repository.config.EnableJpaRepositories;
 import org.springframework.scheduling.annotation.EnableScheduling;
 
 /**
- * Analytics Service — owns {@code popular_items_snapshot} and reads the shared
- * {@code scan_events} log to maintain the hopping-window popular-items ranking.
- *
- * <p>Coupling to Checkout is purely through the shared database: Checkout writes
- * scan rows, this service reads them on a schedule. There is no service-to-service
- * call in either direction.
+ * Analytics Service — owns {@code popular_items_snapshot}, reads the shared
+ * {@code scan_events} log, and serves {@code GET /analytics/popular-items}.
  */
 @SpringBootApplication
 @EnableScheduling
