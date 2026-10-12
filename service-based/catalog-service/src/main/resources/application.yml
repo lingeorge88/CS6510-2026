@@ -1,0 +1,27 @@
+server:
+  port: ${SERVER_PORT:8081}
+
+spring:
+  application:
+    name: catalog-service
+  datasource:
+    # Single centralized database shared by all services. Host defaults to
+    # localhost for bare-JVM runs; docker-compose sets DB_HOST=db.
+    url: jdbc:postgresql://${DB_HOST:localhost}:5432/${DB_NAME:selfcheckout}
+    username: ${DB_USER:postgres}
+    password: ${DB_PASSWORD:postgres}
+    hikari:
+      maximum-pool-size: ${DB_POOL_SIZE:10}
+      minimum-idle: ${DB_POOL_SIZE:10}
+      pool-name: catalogPool
+  jpa:
+    hibernate:
+      # Schema is owned by the database (created once by the Postgres init
+      # scripts). Services never create or drop tables — they validate at most.
+      ddl-auto: none
+    open-in-view: false
+    show-sql: false
+
+selfcheckout:
+  inventory:
+    low-stock-threshold: 50

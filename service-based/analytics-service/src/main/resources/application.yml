@@ -1,0 +1,29 @@
+server:
+  port: ${SERVER_PORT:8084}
+
+spring:
+  application:
+    name: analytics-service
+  datasource:
+    url: jdbc:postgresql://${DB_HOST:localhost}:5432/${DB_NAME:selfcheckout}
+    username: ${DB_USER:postgres}
+    password: ${DB_PASSWORD:postgres}
+    hikari:
+      maximum-pool-size: ${DB_POOL_SIZE:10}
+      minimum-idle: ${DB_POOL_SIZE:10}
+      pool-name: analyticsPool
+  jpa:
+    hibernate:
+      ddl-auto: none
+    open-in-view: false
+    show-sql: false
+
+selfcheckout:
+  analytics:
+    window-size: 1000
+    slide-interval: 500
+    popular-items-limit: 10
+    # Rows persisted per window (bounds snapshot size; well above any client limit).
+    snapshot-depth: 100
+    # How often the service polls the shared scan log for a new slide boundary.
+    recompute-interval-ms: 500

@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <parent>
+        <groupId>com.selfcheckout</groupId>
+        <artifactId>service-based</artifactId>
+        <version>0.0.1-SNAPSHOT</version>
+    </parent>
+
+    <artifactId>shared-persistence</artifactId>
+    <packaging>jar</packaging>
+    <name>shared-persistence</name>
+    <description>
+        The shared data-access coupling surface. Holds ONLY the JPA entities and
+        repositories for tables accessed by more than one service: catalog_items
+        (read by Catalog, Checkout, Analytics), inventory_stock (written by
+        Checkout, read by Inventory), and scan_events (written by Checkout, read
+        by Analytics). Single-owner tables stay private to their service. This is
+        a plain library jar (no @SpringBootApplication, no repackage) so services
+        depend on it without inheriting a runnable app.
+    </description>
+
+    <dependencies>
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-data-jpa</artifactId>
+        </dependency>
+    </dependencies>
+
+</project>

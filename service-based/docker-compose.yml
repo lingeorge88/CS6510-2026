@@ -1,0 +1,81 @@
+# Service-based self-checkout system.
+#
+# One centralized Postgres database shared by all services, three coarse-grained
+# domain-service containers, and an nginx API gateway. Each service is an
+# independently deployable unit: `docker compose up -d catalog-service`,
+# `docker compose restart checkout-service`, `docker compose up --scale
+# checkout-service=3` all work on one service without touching the others.
+#
+# Build the Spring Boot jars on the host first, then build images and start:
+#   mvn -f pom.xml -DskipTests package
+#   docker compose up --build
+#
+# The load client targets the gateway: http://localhost:8080
+# A fresh, reseeded database each run: `docker compose down && docker compose up`.
+
+services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: selfcheckout
+    # Schema + seed run once at first init, in filename order
+    # (01-schema, 02-seed-catalog, 03-seed-inventory).
+    volumes:
+      - ./data/init:/docker-entrypoint-initdb.d:ro
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d selfcheckout"]
+      interval: 2s
+      timeout: 3s
+      retries: 30
+
+  catalog-service:
+    build: ./catalog-service
+    environment:
+      DB_HOST: db
+      DB_NAME: selfcheckout
+      DB_USER: postgres
+      DB_PASSWORD: postgres
+    ports:
+      - "8081:8081"
+    depends_on:
+      db:
+        condition: service_healthy
+
+  checkout-service:
+    build: ./checkout-service
+    environment:
+      DB_HOST: db
+      DB_NAME: selfcheckout
+      DB_USER: postgres
+      DB_PASSWORD: postgres
+    ports:
+      - "8082:8082"
+    depends_on:
+      db:
+        condition: service_healthy
+
+  analytics-service:
+    build: ./analytics-service
+    environment:
+      DB_HOST: db
+      DB_NAME: selfcheckout
+      DB_USER: postgres
+      DB_PASSWORD: postgres
+    ports:
+      - "8084:8084"
+    depends_on:
+      db:
+        condition: service_healthy
+
+  api-gateway:
+    build: ./api-gateway
+    ports:
+      - "8080:8080"
+    depends_on:
+      - catalog-service
+      - checkout-service
+      - analytics-service

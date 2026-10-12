@@ -1,0 +1,3 @@
+Load-client reports land here:
+  default.json      — ./run.sh --stations=10 --duration=60
+  stressMode.json   — ./run.sh --stations=100 --duration=120
